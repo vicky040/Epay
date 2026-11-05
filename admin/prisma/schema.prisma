@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String   @id @default(cuid())
+  phone           String   @unique
+  passwordHash    String
+  nickname        String
+  avatar          String?
+  inviteCode      String   @unique
+  referredById    String?
+  referredBy      User?    @relation("Referrals", fields: [referredById], references: [id])
+  referrals       User[]   @relation("Referrals")
+
+  vipLevel        Int      @default(0)
+  rechargeBalance Float    @default(0)
+  withdrawBalance Float    @default(0)
+  productIncome   Float    @default(0)
+  totalInvested   Float    @default(0)
+  drawChances     Int      @default(0)
+
+  lastCheckIn     DateTime?
+  status          String   @default("active") // active | frozen
+  isAdmin         Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  orders          Order[]
+  transactions    Transaction[]
+  blogs           Blog[]
+  bankCard        BankCard?
+  taskProgress    TaskProgress[]
+  luckyWins       LuckyWin[]
+
+  @@index([referredById])
+}
+
+model Otp {
+  id        String   @id @default(cuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  title         String
+  image         String   @default("")
+  category      String   @default("steady") // steady | benefits | event
+  vipRequired   Int      @default(0)
+  price         Float
+  periodEarning Float
+  duration      Int
+  cycleUnit     String   @default("Days") // Days | Hours
+  total         Float
+  maxPerUser    Int      @default(1)
+  hot           Boolean  @default(false)
+  active        Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  orders        Order[]
+
+  @@index([category, active])
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id])
+
+  productTitle  String
+  productImage  String   @default("")
+  shares        Int      @default(1)
+  amount        Float
+  periodEarning Float
+  cycleUnit     String   @default("Days")
+  duration      Int
+  earnedSoFar   Float    @default(0)
+  expectedTotal Float
+  cyclesPaid    Int      @default(0)
+  status        String   @default("active") // active | finished
+  lastPayoutAt  DateTime?
+  endsAt        DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, status])
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // recharge | withdraw | income | bonus | purchase | rebate
+  amount    Float
+  status    String   @default("success") // pending | success | rejected
+  method    String?
+  note      String?
+  reference String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, type])
+  @@index([status])
+}
+
+model BankCard {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  holder        String
+  accountNumber String
+  ifsc          String
+  bankName      String
+  upi           String?
+  updatedAt     DateTime @updatedAt
+}
+
+model Notice {
+  id        String   @id @default(cuid())
+  title     String
+  image     String   @default("")
+  body      String
+  pinned    Boolean  @default(false)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Blog {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content  String
+  photos   String   @default("[]") // JSON array of URLs
+  reward   Float    @default(0)
+  status   String   @default("pending") // pending | approved | rejected
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+model BannerItem {
+  id        String   @id @default(cuid())
+  image     String
+  link      String?
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model VipTier {
+  level          Int    @id
+  requiredAmount Float
+  dailyBonus     Float  @default(0)
+  perks          String @default("")
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  title       String
+  description String   @default("")
+  reward      Float
+  target      Int      @default(1)
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+
+  progress    TaskProgress[]
+}
+
+model TaskProgress {
+  id       String  @id @default(cuid())
+  userId   String
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId   String
+  task     Task    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  progress Int     @default(0)
+  claimed  Boolean @default(false)
+
+  @@unique([userId, taskId])
+}
+
+model LuckyPrize {
+  slot   Int   @id
+  amount Float
+  weight Int   @default(10)
+}
+
+model LuckyWin {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slot      Int
+  amount    Float
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  key   String @id
+  value String
+}
