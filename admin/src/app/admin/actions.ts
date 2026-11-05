@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 
 import { round2 } from '@/lib/api';
-import { currentAdmin, hashPassword } from '@/lib/auth';
+import { currentAdmin, hashPassword, verifyPassword } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { setSetting, syncVipLevel } from '@/lib/earnings';
 
@@ -426,4 +426,34 @@ export async function saveAppLinks(formData: FormData) {
   await setSetting('appWebUrl', str(formData, 'appWebUrl'));
   revalidatePath('/admin/app');
   revalidatePath('/download');
+}
+
+// -------------------------------------------------- admin's own password ---
+
+export async function changeAdminPassword(formData: FormData) {
+  const admin = await guard();
+
+  const current = str(formData, 'currentPassword');
+  const next = str(formData, 'newPassword');
+  const confirm = str(formData, 'confirmPassword');
+
+  if (!(await verifyPassword(current, admin.passwordHash))) {
+    throw new Error('Current password is incorrect');
+  }
+  if (next.length < 8) {
+    throw new Error('New password must be at least 8 characters');
+  }
+  if (next !== confirm) {
+    throw new Error('New passwords do not match');
+  }
+  if (next === current) {
+    throw new Error('Choose a password different from the current one');
+  }
+
+  await prisma.user.update({
+    where: { id: admin.id },
+    data: { passwordHash: await hashPassword(next) },
+  });
+
+  revalidatePath('/admin/settings');
 }

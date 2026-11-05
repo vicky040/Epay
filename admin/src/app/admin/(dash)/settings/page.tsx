@@ -1,11 +1,13 @@
 import { Button, Card, CardHeader, Field, Input, PageTitle } from '@/components/ui';
 import { DEFAULT_SETTINGS, getSettings } from '@/lib/earnings';
-import { saveSettings } from '@/app/admin/actions';
+import { changeAdminPassword, saveSettings } from '@/app/admin/actions';
+import { currentAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
   const saved = await getSettings();
+  const admin = await currentAdmin();
   const v = (k: string) => saved[k] ?? DEFAULT_SETTINGS[k] ?? '';
 
   return (
@@ -95,6 +97,47 @@ export default async function SettingsPage() {
           <Button type="submit">Save settings</Button>
         </div>
       </form>
+
+      <Card className="mt-5">
+        <CardHeader
+          title="Your admin password"
+          subtitle={`Signed in as ${admin?.phone ?? ''}. Change the seeded password before going live.`}
+        />
+        <form
+          action={changeAdminPassword}
+          className="grid gap-4 p-5 sm:grid-cols-3"
+        >
+          <Field label="Current password">
+            <Input
+              name="currentPassword"
+              type="password"
+              autoComplete="current-password"
+              required
+            />
+          </Field>
+          <Field label="New password" hint="At least 8 characters">
+            <Input
+              name="newPassword"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              required
+            />
+          </Field>
+          <Field label="Confirm new password">
+            <Input
+              name="confirmPassword"
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              required
+            />
+          </Field>
+          <div className="sm:col-span-3">
+            <Button type="submit">Change password</Button>
+          </div>
+        </form>
+      </Card>
     </>
   );
 }

@@ -1,13 +1,14 @@
 /// Build-time configuration.
 ///
-/// Point the app at your backend with:
+/// Defaults to the deployed backend, so a release build works out of the box.
+/// Point it somewhere else with:
 ///   flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api
 ///
 /// 10.0.2.2 is the Android emulator's alias for the host machine's localhost.
 class AppConfig {
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:3000/api',
+    defaultValue: 'https://epay-admin-phi.vercel.app/api',
   );
 
   /// When the backend is unreachable the app transparently serves bundled

@@ -3,6 +3,15 @@
 A complete investment & earning platform: a Flutter mobile app, a REST backend,
 and a web admin console.
 
+**Live:**
+
+| | URL |
+| --- | --- |
+| Admin console | https://epay-admin-phi.vercel.app/admin |
+| App download page | https://epay-admin-phi.vercel.app/download |
+| API base | https://epay-admin-phi.vercel.app/api |
+| Repository | https://github.com/vicky040/Epay |
+
 ```
 capp/
 ├─ epay/     Flutter app (Android · iOS · Web)
@@ -18,18 +27,22 @@ Next.js 16 (App Router) serving two things from one project:
 * `**/api/*`** — the JSON REST API the Flutter app talks to
 * `**/admin/***` — the web console for running the platform
 
-Data lives in SQLite through Prisma 7 (swap the adapter for Postgres/MySQL in
-production — only `src/lib/db.ts` and `prisma.config.ts` change).
+Data lives in Postgres (Neon) through Prisma 7 with the `@prisma/adapter-neon`
+driver adapter.
 
 ### Run it
 
 ```bash
 cd admin
 npm install
-npm run db:push      # create the SQLite schema
-npm run db:seed      # products, VIP tiers, notices, tasks, prizes, admin user
-npm run dev          # http://localhost:3000
+vercel env pull .env.local --yes   # pulls DATABASE_URL and the JWT secrets
+npm run db:push                    # create the schema
+npm run db:seed                    # products, VIP tiers, notices, tasks, prizes, admin user
+npm run dev                        # http://localhost:3000
 ```
+
+Without Vercel, copy `.env.example` to `.env.local` and fill in your own
+Postgres connection string.
 
 Open **http://localhost:3000/admin**.
 
@@ -38,7 +51,8 @@ Open **http://localhost:3000/admin**.
 | Admin console | `9000000000` | `admin123` |
 | Demo app user | `8769293125` | `demo123` |
 
-> Change both before deploying. `npm run db:reset` wipes and re-seeds.
+> **Change the admin password immediately** — Settings → *Your admin password*.
+> `npm run db:reset` wipes and re-seeds.
 
 ### Admin console
 
@@ -56,6 +70,7 @@ Open **http://localhost:3000/admin**.
 | Blog Review | Approve a post and set the author's reward |
 | Tasks | Reward missions and their target counts |
 | Lucky Wheel | Prize slots, weights, live odds, win log |
+| Mobile App | Upload an APK release, QR code, and the public download link |
 | Reports | 14-day cash flow, totals by type, top referrers |
 | Settings | Minimums, withdrawal tax, referral rebate percentages, branding |
 
@@ -125,6 +140,13 @@ APP_PUBLIC_URL="https://epay.app"
 ```bash
 cd epay
 flutter pub get
+flutter run
+```
+
+The app points at the deployed backend by default, so it works straight away.
+To run it against a local backend:
+
+```bash
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api
 ```
 
@@ -154,7 +176,32 @@ lib/
 
 ---
 
-## 3. Brand
+## 3. Shipping the mobile app
+
+The admin console hosts the Android build and the page your users install from.
+
+**Build the APK:**
+
+```bash
+cd epay
+flutter build apk --release
+# → build/app/outputs/flutter-apk/app-release.apk  (~51 MB)
+```
+
+**Publish it:** open **Admin → Mobile App**, drop in the `.apk`, set a version
+and release notes, then *Publish release*. The file uploads straight from your
+browser to Vercel Blob — Vercel caps function request bodies at 4.5 MB, so a
+50 MB APK can never be proxied through a route handler.
+
+**Users install from** `/download`: a branded page with a download button, a QR
+code to open it on a phone, install steps for side-loading, and the current
+version and size. Optional iOS and web-app links appear there too once set.
+
+APKs are deliberately **not** committed to git — they live in Blob storage.
+
+---
+
+## 4. Brand
 
 Professional blue, built from one token set in `epay/lib/core/theme.dart`:
 
@@ -181,8 +228,13 @@ Regenerate the raster files with `tools/logo.py` and `tools/icons.py`.
 
 ## Production checklist
 
-- [ ] Replace both JWT secrets and the seeded admin password
-- [ ] Swap SQLite for Postgres (change the Prisma adapter in `src/lib/db.ts`)
-- [ ] Wire a real SMS gateway in `src/app/api/auth/otp/route.ts`
-- [ ] Restrict `Access-Control-Allow-Origin` in `next.config.ts`
-- [ ] Put the app's `API_BASE_URL` behind HTTPS
+- [x] Postgres (Neon) in place of SQLite
+- [x] JWT secrets generated and stored as Vercel secrets
+- [x] App talks to the backend over HTTPS
+- [ ] **Change the seeded admin password** (Settings → Your admin password)
+- [ ] **Change or remove the seeded demo user** (`8769293125` / `demo123`)
+- [ ] Wire a real SMS gateway in `src/app/api/auth/otp/route.ts` — OTP currently
+      returns `devCode` outside production
+- [ ] Restrict `Access-Control-Allow-Origin` in `next.config.ts` to your own origins
+- [ ] Rotate the Neon database password if the connection string was ever shared
+- [ ] Run `vercel git connect` to deploy automatically on every push
