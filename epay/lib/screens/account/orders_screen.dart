@@ -32,12 +32,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final o = await Api.i.orders(status: _tabs[_tab].$1);
-    if (!mounted) return;
-    setState(() {
-      _items = o;
-      _loading = false;
-    });
+    try {
+      final o = await Api.i.orders(status: _tabs[_tab].$1);
+      if (!mounted) return;
+      setState(() => _items = o);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override

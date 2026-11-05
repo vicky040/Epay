@@ -77,14 +77,32 @@ class Api {
   Future<dynamic> _post(String p, [Map<String, dynamic>? b]) => _send('POST', p, b);
   Future<dynamic> _patch(String p, [Map<String, dynamic>? b]) => _send('PATCH', p, b);
 
+  /// Called when the server rejects our token, so the session can be cleared
+  /// instead of leaving the UI waiting on a request that will never succeed.
+  void Function()? onUnauthorized;
+
   /// Runs [live]; if the network fails, returns [fallback] instead.
-  Future<T> _guard<T>(Future<T> Function() live, T Function() fallback) async {
+  ///
+  /// [read] marks a plain data fetch. A screen showing a list has no useful way
+  /// to recover from a server error mid-build, and an uncaught throw here left
+  /// screens spinning forever — so reads resolve to [fallback] instead.
+  /// Writes still throw, because the user needs the server's actual message.
+  Future<T> _guard<T>(
+    Future<T> Function() live,
+    T Function() fallback, {
+    bool read = false,
+  }) async {
     try {
       final v = await live();
       usingDemo = false;
       return v;
-    } on ApiException {
-      rethrow; // a real server answer — surface it
+    } on ApiException catch (e) {
+      if (e.status == 401) onUnauthorized?.call();
+      if (read && AppConfig.demoFallback) {
+        usingDemo = true;
+        return fallback();
+      }
+      rethrow;
     } catch (_) {
       if (!AppConfig.demoFallback) {
         throw ApiException('Cannot reach the server. Check your connection.');
@@ -93,6 +111,10 @@ class Api {
       return fallback();
     }
   }
+
+  /// [_guard] for a plain data fetch.
+  Future<T> _read<T>(Future<T> Function() live, T Function() fallback) =>
+      _guard(live, fallback, read: true);
 
   List<Map<String, dynamic>> _list(dynamic v) => (v as List)
       .map((e) => Map<String, dynamic>.from(e as Map))
@@ -173,12 +195,12 @@ class Api {
 
   // ------------------------------------------------------------ catalogue ---
 
-  Future<List<AppBannerItem>> banners() => _guard(
+  Future<List<AppBannerItem>> banners() => _read(
         () async => _list(await _get('/banners')).map(AppBannerItem.fromJson).toList(),
         () => Demo.i.banners.map(AppBannerItem.fromJson).toList(),
       );
 
-  Future<List<Product>> products(ProductCategory c) => _guard(
+  Future<List<Product>> products(ProductCategory c) => _read(
         () async => _list(await _get('/products', query: {'category': c.api}))
             .map(Product.fromJson)
             .toList(),
@@ -188,14 +210,14 @@ class Api {
             .toList(),
       );
 
-  Future<List<VipTier>> vipTiers() => _guard(
+  Future<List<VipTier>> vipTiers() => _read(
         () async => _list(await _get('/vip-levels')).map(VipTier.fromJson).toList(),
         () => Demo.i.vipTiers.map(VipTier.fromJson).toList(),
       );
 
   // ---------------------------------------------------------------- money ---
 
-  Future<List<Order>> orders({String status = 'all'}) => _guard(
+  Future<List<Order>> orders({String status = 'all'}) => _read(
         () async => _list(await _get('/orders', query: {'status': status}))
             .map(Order.fromJson)
             .toList(),
@@ -216,7 +238,7 @@ class Api {
         () => '${Demo.i.buy(productId, shares)['message']}',
       );
 
-  Future<List<Txn>> transactions({String type = 'all'}) => _guard(
+  Future<List<Txn>> transactions({String type = 'all'}) => _read(
         () async => _list(await _get('/transactions', query: {'type': type}))
             .map(Txn.fromJson)
             .toList(),
@@ -245,7 +267,7 @@ class Api {
         () => '${Demo.i.withdraw(amount)['message']}',
       );
 
-  Future<BankCard?> bankCard() => _guard(
+  Future<BankCard?> bankCard() => _read(
         () async {
           final r = await _get('/bank-card');
           if (r == null || (r is Map && r.isEmpty)) return null;
@@ -265,18 +287,18 @@ class Api {
 
   // ----------------------------------------------------------- engagement ---
 
-  Future<TeamInfo> team() => _guard(
+  Future<TeamInfo> team() => _read(
         () async => TeamInfo.fromJson(
             Map<String, dynamic>.from(await _get('/team') as Map)),
         () => TeamInfo.fromJson(Demo.i.team()),
       );
 
-  Future<List<Notice>> notices() => _guard(
+  Future<List<Notice>> notices() => _read(
         () async => _list(await _get('/notices')).map(Notice.fromJson).toList(),
         () => Demo.i.notices.map(Notice.fromJson).toList(),
       );
 
-  Future<List<BlogPost>> blogs() => _guard(
+  Future<List<BlogPost>> blogs() => _read(
         () async => _list(await _get('/blogs')).map(BlogPost.fromJson).toList(),
         () => Demo.i.blogs.map(BlogPost.fromJson).toList(),
       );
@@ -292,7 +314,7 @@ class Api {
         () => '${Demo.i.postBlog(content, photos)['message']}',
       );
 
-  Future<List<TaskItem>> tasks() => _guard(
+  Future<List<TaskItem>> tasks() => _read(
         () async => _list(await _get('/tasks')).map(TaskItem.fromJson).toList(),
         () => Demo.i.tasks.map(TaskItem.fromJson).toList(),
       );
@@ -314,7 +336,7 @@ class Api {
       );
 
   Future<({List<LuckyPrize> prizes, List<LuckyWin> wins, int chances})> lucky() =>
-      _guard(
+      _read(
         () async {
           final r = await _get('/lucky') as Map<String, dynamic>;
           return (

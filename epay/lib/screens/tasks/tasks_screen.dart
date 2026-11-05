@@ -26,12 +26,13 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   Future<void> _load() async {
-    final t = await Api.i.tasks();
-    if (!mounted) return;
-    setState(() {
-      _items = t;
-      _loading = false;
-    });
+    try {
+      final t = await Api.i.tasks();
+      if (!mounted) return;
+      setState(() => _items = t);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _claim(TaskItem t) async {

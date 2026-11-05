@@ -50,8 +50,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _load() async {
-    final b = await Api.i.banners();
-    final f = await Api.i.blogs();
+    final List<AppBannerItem> b;
+    final List<BlogPost> f;
+    try {
+      b = await Api.i.banners();
+      f = await Api.i.blogs();
+    } catch (_) {
+      return; // the hero and feed simply stay empty
+    }
     if (!mounted) return;
     setState(() {
       _banners = b;

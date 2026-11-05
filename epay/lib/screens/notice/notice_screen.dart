@@ -41,12 +41,13 @@ class _NoticeScreenState extends State<NoticeScreen> {
   }
 
   Future<void> _load() async {
-    final n = await Api.i.notices();
-    if (!mounted) return;
-    setState(() {
-      _items = n;
-      _loading = false;
-    });
+    try {
+      final n = await Api.i.notices();
+      if (!mounted) return;
+      setState(() => _items = n);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override

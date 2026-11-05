@@ -31,12 +31,13 @@ class _TeamScreenState extends State<TeamScreen> {
   }
 
   Future<void> _load() async {
-    final t = await Api.i.team();
-    if (!mounted) return;
-    setState(() {
-      _info = t;
-      _loading = false;
-    });
+    try {
+      final t = await Api.i.team();
+      if (!mounted) return;
+      setState(() => _info = t);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override

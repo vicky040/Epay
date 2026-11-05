@@ -30,12 +30,13 @@ class _BlogScreenState extends State<BlogScreen> {
   }
 
   Future<void> _load() async {
-    final p = await Api.i.blogs();
-    if (!mounted) return;
-    setState(() {
-      _posts = p;
-      _loading = false;
-    });
+    try {
+      final p = await Api.i.blogs();
+      if (!mounted) return;
+      setState(() => _posts = p);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override

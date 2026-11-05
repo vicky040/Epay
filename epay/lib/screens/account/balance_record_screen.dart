@@ -36,12 +36,13 @@ class _BalanceRecordScreenState extends State<BalanceRecordScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final t = await Api.i.transactions(type: _filters[_filter].$1);
-    if (!mounted) return;
-    setState(() {
-      _items = t;
-      _loading = false;
-    });
+    try {
+      final t = await Api.i.transactions(type: _filters[_filter].$1);
+      if (!mounted) return;
+      setState(() => _items = t);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override

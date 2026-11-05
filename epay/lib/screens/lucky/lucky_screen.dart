@@ -45,14 +45,17 @@ class _LuckyScreenState extends State<LuckyScreen> {
   }
 
   Future<void> _load() async {
-    final r = await Api.i.lucky();
-    if (!mounted) return;
-    setState(() {
-      _prizes = r.prizes;
-      _wins = r.wins;
-      _chances = r.chances;
-      _loading = false;
-    });
+    try {
+      final r = await Api.i.lucky();
+      if (!mounted) return;
+      setState(() {
+        _prizes = r.prizes;
+        _wins = r.wins;
+        _chances = r.chances;
+      });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _spin() async {

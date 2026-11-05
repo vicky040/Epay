@@ -26,8 +26,12 @@ class _CheckInScreenState extends State<CheckInScreen> {
   }
 
   Future<void> _load() async {
-    final t = await Api.i.vipTiers();
-    if (mounted) setState(() => _tiers = t);
+    try {
+      final t = await Api.i.vipTiers();
+      if (mounted) setState(() => _tiers = t);
+    } catch (_) {
+      // The screen renders fine without the tier list.
+    }
   }
 
   double get _todayBonus {

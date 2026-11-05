@@ -16,7 +16,16 @@ class Session extends ChangeNotifier {
 
   bool get isLoggedIn => user != null;
 
+  /// Wires the API's 401 handler once, so a rejected token signs the user out
+  /// rather than leaving screens waiting on requests that cannot succeed.
+  void _attachUnauthorizedHandler() {
+    Api.i.onUnauthorized ??= () {
+      if (user != null) logout();
+    };
+  }
+
   Future<void> boot() async {
+    _attachUnauthorizedHandler();
     final prefs = await SharedPreferences.getInstance();
     final t = prefs.getString(_kToken);
     if (t != null && t.isNotEmpty) {

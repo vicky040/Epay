@@ -34,12 +34,13 @@ class _InvestScreenState extends State<InvestScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final p = await Api.i.products(_cats[_tab]);
-    if (!mounted) return;
-    setState(() {
-      _products = p;
-      _loading = false;
-    });
+    try {
+      final p = await Api.i.products(_cats[_tab]);
+      if (!mounted) return;
+      setState(() => _products = p);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _openSheet(Product p) async {

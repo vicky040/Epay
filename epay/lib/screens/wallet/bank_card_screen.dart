@@ -38,16 +38,19 @@ class _BankCardScreenState extends State<BankCardScreen> {
   }
 
   Future<void> _load() async {
-    final c = await Api.i.bankCard();
-    if (!mounted) return;
-    if (c != null) {
-      _holder.text = c.holder;
-      _account.text = c.accountNumber;
-      _ifsc.text = c.ifsc;
-      _bank.text = c.bankName;
-      _upi.text = c.upi ?? '';
+    try {
+      final c = await Api.i.bankCard();
+      if (!mounted) return;
+      if (c != null) {
+        _holder.text = c.holder;
+        _account.text = c.accountNumber;
+        _ifsc.text = c.ifsc;
+        _bank.text = c.bankName;
+        _upi.text = c.upi ?? '';
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
-    setState(() => _loading = false);
   }
 
   Future<void> _save() async {

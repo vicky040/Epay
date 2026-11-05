@@ -37,12 +37,13 @@ class _VipScreenState extends State<VipScreen> {
   }
 
   Future<void> _load() async {
-    final t = await Api.i.vipTiers();
-    if (!mounted) return;
-    setState(() {
-      _tiers = t;
-      _loading = false;
-    });
+    try {
+      final t = await Api.i.vipTiers();
+      if (!mounted) return;
+      setState(() => _tiers = t);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override

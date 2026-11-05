@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../core/session.dart';
 import '../core/widgets/bottom_nav.dart';
-import 'auth/auth_screen.dart';
 import 'account/account_screen.dart';
 import 'blog/blog_screen.dart';
 import 'home/home_screen.dart';
@@ -40,8 +39,8 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
-    if (!Session.i.isLoggedIn) return const AuthScreen();
-
+    // _Root decides between sign-in and the shell; by the time this builds the
+    // user is signed in.
     return TabSwitcher(
       go: _go,
       child: Scaffold(
